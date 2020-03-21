@@ -17,3 +17,9 @@
 const Route = use('Route')
 
 Route.post('/register', 'UserController.create');
+Route.patch('/verify', 'UserController.verify');
+Route.post('/login', 'UserController.login');
+Route.patch('/resetPassword', 'UserController.resetPassword').middleware(['auth']);
+Route.patch('/forgetPassword', 'UserController.forgetPassword');
+Route.patch('/forgetPasswordReset', 'UserController.forgetPasswordReset');
+Route.patch('/verifyForgetPasswordOtp', 'UserController.verifyForgetPasswordOtp');

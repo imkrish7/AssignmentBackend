@@ -12,6 +12,8 @@ class UserSchema extends Schema {
       table.string('countrycode', 3).notNullable()
       table.string('phonenumber', 11).notNullable()
       table.boolean('verified').notNullable()
+      table.string('verificationOTP', 4)
+      table.string('forgetPasswordOtp', 4)
       table.string('password', 60).notNullable()
       table.timestamps()
     })

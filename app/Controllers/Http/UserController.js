@@ -2,6 +2,7 @@
 const User = use('App/Models/User');
 const Mail = use('Mail');
 const Env = use('Env');
+const Hash = use('Hash');
 
 class UserController {
 
@@ -45,6 +46,7 @@ class UserController {
 			let user = await User.findBy('email', email);
 			const OTP = Math.floor(Math.random() * 9999);
 			user.verificationOTP = OTP;
+			await user.save();
 			const link = `/localhost:3000/verify?email=${user.email}`
 				await Mail.connection('ethereal').send('emails.welcome', { ...user.toJSON(), link, OTP}, (message)=>{
 					message.to(user.email).from(Env.get('MAIL_USERNAME'))
@@ -61,15 +63,16 @@ class UserController {
 	async login({ request , auth, response}){
 		const { email, password } = request.all();
 		const isUserExist = await User.findBy('email',email);
-		const isPassword = await auth.authenticator('jwt').attempt(email, password);
+		
 		try {
 			if(isUserExist){
-				if(isPassword.type){
+				const isPasswordSame = await Hash.verify(password, isUserExist.password);
+				if(isPasswordSame){
 					if(isUserExist.verified){
 						const token = await auth.authenticator('jwt').attempt(email, password);
 						return { success: true, token };
 					}else{ 
-						return response.status(401).json({ success: false, verified: false, msg: 'User is not Verified' })
+						return response.status(401).json({ success: false, notVerified: true, msg: 'User is not Verified' })
 					}
 					
 				}else{ 
@@ -90,13 +93,13 @@ class UserController {
 		let isUserExist = await User.findBy('email',email);
 		try {
 			if(isUserExist){
-				if(isUserExist.verificationOTP === otp ){
+				if(isUserExist.verificationOTP == otp ){
 					isUserExist.verificationOTP = null;
 					isUserExist.verified = true;
 					isUserExist.save(); 
 					return { success: true}
 				}else{
-					return response.status(401).json({ success: false, meg: 'wrong Otp'});
+					return response.status(401).json({ success: false, msg: 'wrong Otp'});
 				}
 			}else{ 
 				return response.status(401).json({ success: false, msg: "User doesnot exists"});
@@ -112,6 +115,7 @@ class UserController {
 		const { email } = request.all();
 		try{
 			const user = await User.findBy('email',email);
+			if(user){
 			const OTP = Math.floor(Math.random() * 9999);
 			user.forgetPasswordOtp = OTP;
 			await user.save();
@@ -120,9 +124,13 @@ class UserController {
 					message.to(user.email).from(Env.get('MAIL_USERNAME'))
 				})
 			return { success: true}
+			}else{
+				return response.status(401).json({ success: false, msg: "User does not exist"})
+			}
+
 		}catch(error){
 			console.log(error);
-			return response.status(500).json({ success: false});
+			return response.status(500).json({ success: false, msg: 'Something went wrong'});
 		}
 	}
 
@@ -134,7 +142,7 @@ class UserController {
 			if(user){
 				if(user.forgetPasswordOtp == otp){
 					user.forgetPasswordOtp = null;
-					// user.save();
+					await user.save();
 					return { success: true }
 				}else{
 					return response.status(401).json({ success: false, msg: "Please enter right otp"});
@@ -177,8 +185,9 @@ class UserController {
 		const id = auth.user.id;
 		try {
 			const user = await User.find(id);
+			const isSame = await Hash.verify(oldPassword, user.password);
 			if(user){
-				if(user.password == oldPassword){
+				if(isSame){
 					user.password = newPassword;
 					user.save();
 					return { success: true };

@@ -19,7 +19,8 @@ const Route = use('Route')
 Route.post('/register', 'UserController.create');
 Route.patch('/verify', 'UserController.verify');
 Route.post('/login', 'UserController.login');
-Route.patch('/resetPassword', 'UserController.resetPassword').middleware(['auth']);
+Route.patch('/resetPassword', 'UserController.resetPassword').middleware(['auth:jwt']);
 Route.patch('/forgetPasswordOtp', 'UserController.forgetPasswordOtp');
 Route.patch('/forgetPasswordReset', 'UserController.forgetPasswordReset');
 Route.patch('/verifyForgetPasswordOtp', 'UserController.verifyForgetPasswordOtp');
+Route.patch('/resend_otp', 'UserController.resendOtp');
